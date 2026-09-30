@@ -1,5 +1,7 @@
 # Juice Portfolio
 
+**Live Demo:** https://juice-portfolio-demo.vercel.app/
+
 A local-first portfolio dashboard built around a normalized portfolio snapshot, so the UI never needs to know where the portfolio data came from.
 
 > **This repository contains the public static demo.** All holdings, quantities, costs, prices and balances are fabricated for demonstration purposes. It does not connect to any broker, contains no real account data, needs no API keys and makes no portfolio-data network requests.
