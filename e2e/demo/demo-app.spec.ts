@@ -125,6 +125,47 @@ test('a classification edit moves Allocation at once and persists across a reloa
   await expect(categorySelect(page, 'RKLB')).toHaveValue('')
 })
 
+/** The computed rgb() a CSS custom property resolves to, so expectations follow the palette. */
+const tokenColor = (page: Page, token: string) => page.evaluate(name => {
+  const probe = document.createElement('span')
+  probe.style.color = `var(${name})`
+  document.body.append(probe)
+  const color = getComputedStyle(probe).color
+  probe.remove()
+  return color
+}, token)
+
+const positionRow = (page: Page, symbol: string) =>
+  page.locator('.positions-table tbody tr').filter({ has: page.locator('th strong', { hasText: new RegExp(`^${symbol}$`) }) })
+
+test('position P&L is red for a loss and green for a gain; market value stays neutral', async ({ page }) => {
+  await open(page)
+  const [lossRed, gainGreen, neutral, muted] = await Promise.all(
+    ['--neg', '--pos-strong', '--ink-2', '--muted-2'].map(token => tokenColor(page, token)))
+  expect(new Set([lossRed, gainGreen, neutral, muted]).size).toBe(4)
+
+  // Cells after the row header: type, quantity, price, market value, unrealized, holding P&L, %.
+  // SNOW: 80 shares bought at 350, now 330.
+  const snow = positionRow(page, 'SNOW').locator('td')
+  await expect(snow.nth(3)).toHaveText('USD 26,400.00')
+  await expect(snow.nth(5)).toHaveText('USD −1,600.00')
+  await expect(snow.nth(6)).toHaveText('−5.71%')
+  await expect(snow.nth(5)).toHaveCSS('color', lossRed)
+  await expect(snow.nth(6)).toHaveCSS('color', lossRed)
+  await expect(snow.nth(3)).toHaveCSS('color', neutral)
+  // The currency code inside a loss recedes to gray rather than turning red.
+  await expect(snow.nth(5).locator('.amount-code')).toHaveText('USD')
+  await expect(snow.nth(5).locator('.amount-code')).toHaveCSS('color', muted)
+
+  // NVDA: 250 shares bought at 190, now 229.73.
+  const nvda = positionRow(page, 'NVDA').locator('td')
+  await expect(nvda.nth(5)).toHaveText('USD +9,932.50')
+  await expect(nvda.nth(6)).toHaveText('+20.91%')
+  await expect(nvda.nth(5)).toHaveCSS('color', gainGreen)
+  await expect(nvda.nth(6)).toHaveCSS('color', gainGreen)
+  await expect(nvda.nth(3)).toHaveCSS('color', neutral)
+})
+
 test('Refresh makes no request and keeps every local preference', async ({ page }) => {
   const seeded: Record<string, string> = {
     [KEYS.identity]: JSON.stringify({ displayName: 'Ava' }),

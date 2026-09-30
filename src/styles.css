@@ -410,6 +410,7 @@ th { font-weight: 500; }
 /* Column captions: small, gray, never louder than the values beneath them. */
 thead th { color: var(--muted-2); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .positions-table .positive, .position-details .positive { color: var(--pos-strong); }
+.positions-table .negative, .position-details .negative { color: var(--neg); }
 td, th { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 td:first-child, th:first-child { padding-left: 22px; }
 td:last-child, th:last-child { padding-right: 22px; }
