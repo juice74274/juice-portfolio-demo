@@ -1,0 +1,18 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Playwright output
+test-results/
+playwright-report/
+
+# Local environment and machine files (this demo needs none)
+.env
+.env.*
+*.local
+*.local.json
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

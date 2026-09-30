@@ -1,0 +1,750 @@
+/* Institutional minimalism.
+   Hierarchy comes from typography, alignment and hairlines rather than from boxes, shadows or
+   colour. The canvas is a quiet off-white, content sits on flat white surfaces with 1px
+   borders, and Klein Blue (#002FA7) is reserved for selection, primary actions, progress and
+   focus. Neutral near-black carries the numbers; grays carry labels and metadata. */
+
+:root {
+  font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0e1116;
+  background: #f6f7f9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+  /* Brand: selection, primary actions, progress, focus. Nothing else. */
+  --brand: #002fa7;
+  --brand-deep: #00237d;
+  --brand-mid: #2a55c4;
+  --brand-soft: #f0f3fb;
+  --brand-soft-2: #e3e9f7;
+  --brand-line: #c6d2f0;
+  --brand-tint: rgba(0, 47, 167, .06);
+  /* Surfaces. The canvas is the page; surfaces are the few things that sit on it. */
+  --canvas: #f6f7f9;
+  --card: #fff;
+  --surface-2: #fafbfc;
+  --hover: #f2f3f6;
+  /* Table rows: a hover that is barely there, and a slightly clearer tone for an open row
+     and the inspector beneath it. */
+  --row-hover: #fbfbfc;
+  --inset: #f7f8fa;
+  /* Neutral text ramp: primary, secondary, tertiary (still >= 4.5:1 on white), and a faint
+     tone for eyebrows and separators that never carry data on their own. */
+  --ink: #0e1116;
+  --ink-2: #2c313a;
+  --muted: #5b616b;
+  --muted-2: #6b717b;
+  --faint: #979ca5;
+  --line: #e7e8ec;
+  --line-2: #d5d8de;
+  /* Semantic P&L, deliberately NOT brand colours: green and red mean gain and loss here and
+     are used for nothing else. Both amounts always carry an explicit +/− sign from
+     format.ts, so colour is never the sole carrier of meaning. --pos-strong is the same
+     green darkened to clear 4.5:1 on white for table-size text. */
+  --pos: #16a34a;
+  --pos-strong: #15803d;
+  --neg: #dc2626;
+  /* Errors borrow the loss red rather than adding a third hue. */
+  --danger: #dc2626;
+  --danger-soft: #fef4f4;
+  --danger-line: #f6d5d5;
+  /* One radius scale, one (rarely used) shadow, one easing. */
+  --radius-card: 12px;
+  --radius-inner: 8px;
+  --radius-control: 7px;
+  --control-h: 34px;
+  --shadow-float: 0 1px 2px rgba(16, 22, 35, .06), 0 4px 12px -4px rgba(16, 22, 35, .12);
+  --ease: 160ms cubic-bezier(.4, 0, .2, 1);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+body { margin: 0; min-width: 320px; background: var(--canvas); }
+button, input, select { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button, select { cursor: pointer; }
+button { color: inherit; }
+button:disabled { cursor: wait; opacity: .6; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+button, select, a, input { transition: background var(--ease), border-color var(--ease), color var(--ease), box-shadow var(--ease); }
+::selection { background: var(--brand); color: #fff; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cfd2d8; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #b3b7bf; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.skip-link { position: fixed; top: -60px; left: 16px; z-index: 20; padding: 9px 14px; background: var(--brand); color: #fff; border-radius: var(--radius-control); font-size: 13px; font-weight: 550; }
+.skip-link:focus { top: 10px; }
+.icon { width: 18px; height: 18px; flex-shrink: 0; }
+.app-shell { display: flex; min-height: 100vh; }
+
+/* ---- Sidebar: sits on the canvas, recedes behind the content ------------------------- */
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; display: flex; flex-direction: column; width: 192px; padding: 20px 12px 16px; border-right: 1px solid var(--line); background: var(--canvas); }
+/* The wordmark is quiet neutral type, not a badge: ink text aligned with the workspace
+   line, with Klein Blue confined to a small full-stop dot. It is the creator/product signature,
+   "juice", and never changes with the user's display name on the line below it. The dot is a
+   pseudo-element so the link text stays exactly "juice". */
+.brand { display: inline-flex; align-items: baseline; width: fit-content; margin: 0 10px 4px; padding: 3px 0; color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: -.3px; line-height: 1.2; text-transform: none; }
+.brand::after { content: ''; width: 4px; height: 4px; margin-left: 2px; border-radius: 50%; background: var(--brand); }
+/* The user's workspace, under the product wordmark: one quiet line with a pencil that is
+   visible but recedes until hovered. The editor replaces the line in place, at the same width,
+   so the navigation below moves only by the editor's own height while it is open.
+   The row shrink-wraps its text and the pencil is positioned just past its end, so the pencil
+   takes no text width: it follows a short name, and for a long one it sits in the sidebar's
+   right gutter. max-width reserves only the pencil's own 14px, which the sidebar's right
+   padding already provides: the text can run to the edge of the navigation column. */
+.workspace-identity { position: relative; display: flex; align-items: center; width: fit-content; max-width: calc(100% - 14px); margin: 0 0 17px 10px; }
+/* Only the user's name truncates; the fixed "'s Dashboard" suffix keeps its full width. */
+.workspace-name { display: flex; min-width: 0; color: var(--muted); font-size: 12.5px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+.workspace-owner { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.workspace-suffix { flex: none; }
+.workspace-edit { position: absolute; top: 50%; left: 100%; display: inline-grid; place-items: center; width: 14px; height: 24px; margin: -12px 0 0; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--faint); }
+.workspace-edit .icon { width: 12px; height: 12px; }
+.workspace-edit:hover, .workspace-edit:focus-visible { background: rgba(16, 22, 35, .045); color: var(--brand); }
+.workspace-editor { display: grid; gap: 6px; margin: 0 2px 17px 6px; }
+.workspace-editor input { width: 100%; min-width: 0; min-height: 30px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 500; }
+.workspace-editor input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.workspace-editor input[aria-invalid="true"] { border-color: var(--danger-line); background: var(--danger-soft); }
+.workspace-error { margin: 0; color: var(--danger); font-size: 11.5px; line-height: 1.45; }
+.workspace-actions { display: flex; gap: 6px; }
+.workspace-save, .workspace-cancel { min-height: 28px; padding: 0 12px; border-radius: var(--radius-control); font-size: 12.5px; }
+.workspace-save { border: 0; background: var(--brand); color: #fff; font-weight: 550; }
+.workspace-save:hover { background: var(--brand-deep); }
+.workspace-cancel { border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2); font-weight: 500; }
+.workspace-cancel:hover { background: var(--hover); border-color: #b9bdc5; }
+.sidebar nav { display: grid; gap: 2px; }
+.nav-link { position: relative; display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: var(--radius-control); color: var(--ink-2); font-size: 13.5px; font-weight: 450; }
+.nav-link .icon { width: 16px; height: 16px; color: var(--muted-2); }
+.nav-link:hover { background: rgba(16, 22, 35, .045); color: var(--ink); }
+.nav-link.active { background: var(--brand-tint); color: var(--brand); font-weight: 550; }
+.nav-link.active .icon { color: var(--brand); }
+/* A short Klein Blue rule marks the selection, instead of a filled pill. */
+.nav-link.active::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--brand); }
+
+/* ---- Topbar: utility row, one hairline ---------------------------------------------- */
+.main-content { flex: 1; min-width: 0; margin-left: 192px; }
+.topbar { display: flex; align-items: center; justify-content: flex-end; height: 56px; gap: 14px; padding: 0 32px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+.topbar-badges { display: flex; align-items: center; gap: 18px; }
+/* Data source status: a dot and a word, not a pill. */
+.mock-badge { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; color: var(--muted); background: none; font-size: 12.5px; white-space: nowrap; }
+.mock-badge > span { flex: none; width: 6px; height: 6px; border-radius: 50%; background: #b8bcc4; }
+/* The 统计币种 badge is a compact reporting-currency selector. It only changes
+   the portfolio-level reporting currency; native position and cash amounts are unaffected. */
+.currency-badge { display: inline-flex; align-items: center; color: var(--muted); font-size: 12.5px; }
+.currency-badge strong { color: var(--ink); margin-left: 8px; font-size: 13px; font-weight: 550; }
+.currency-select { margin-left: 8px; min-width: 0; max-width: none; min-height: var(--control-h); padding: 0 26px 0 10px; border-color: var(--line-2); color: var(--ink); font-size: 13px; font-weight: 500; }
+.currency-select:focus { color: var(--ink); }
+.currency-select:disabled { opacity: .5; cursor: progress; }
+
+/* ---- Page frame -------------------------------------------------------------------- */
+.page-content { max-width: 1600px; margin: 0 auto; padding: 28px 32px 0; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0; color: var(--ink); font-size: 21px; font-weight: 600; letter-spacing: -.3px; line-height: 1.3; }
+
+/* ---- Surfaces ---------------------------------------------------------------------- */
+/* A flat white surface with a hairline border. No shadow: the canvas already separates it. */
+.card { min-width: 0; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.thin-track { background: var(--line); border-radius: 3px; height: 4px; margin-top: 8px; overflow: hidden; }
+.thin-track span { display: block; height: 100%; border-radius: inherit; background: var(--brand); }
+
+/* ---- Portfolio overview -------------------------------------------------------------- */
+/* The first screen is ONE surface: the total and the P&L in the left column, the wealth goal
+   in the right, a single status line underneath. Hierarchy is carried by type size alone —
+   the total is the only large figure on the page; everything else steps down from it. */
+.overview-heading { align-items: center; margin-bottom: 14px; }
+.overview-heading-aside { display: flex; align-items: center; gap: 14px; flex: none; }
+.overview-kicker { color: var(--faint); font-size: 10.5px; font-weight: 500; letter-spacing: .1em; }
+/* Refresh is a utility, not a CTA: borderless until hovered, the icon carries it. */
+.refresh-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 30px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; }
+.refresh-button .icon { width: 15px; height: 15px; color: var(--muted-2); }
+.refresh-button:hover { border-color: var(--line-2); background: var(--card); color: var(--ink); }
+.refresh-button:hover .icon { color: var(--brand); }
+.refresh-button:disabled { background: transparent; border-color: transparent; color: var(--muted); }
+
+.overview-panel { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); min-width: 0; margin-top: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.overview-heading + .overview-panel { margin-top: 0; }
+.overview-panel-goal-only { grid-template-columns: minmax(0, 1fr); }
+
+/* Left column: total, then P&L directly beneath it. */
+.summary-grid { display: flex; flex-direction: column; gap: 22px; min-width: 0; padding: 24px 28px 22px; }
+.summary-grid > article { min-width: 0; }
+.metric-label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--muted); font-size: 12.5px; font-weight: 500; line-height: 1.4; }
+.metric-label-en { color: var(--faint); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; }
+/* Currency code as a quiet outlined code, not a coloured pill. */
+.metric-currency { flex: none; margin-left: 4px; color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; line-height: 1.4; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; background: none; }
+/* The primary portfolio number: the largest thing on the page, in near-black. */
+.total-number { margin: 8px 0 6px; color: var(--ink); font-size: clamp(36px, 3vw, 44px); font-weight: 500; line-height: 1.05; letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.total-number > span { color: var(--muted-2); margin-right: 8px; font-size: .45em; font-weight: 500; letter-spacing: 0; }
+/* The total's qualifier reads as one caption line: 所有账户合计 · 统一折算为 CNH. */
+.total-card-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; color: var(--muted-2); font-size: 12.5px; line-height: 1.5; }
+.total-card-bottom > span + span::before { content: '·'; margin: 0 7px; color: var(--line-2); }
+.mini-tag { color: var(--muted-2); font-size: 12.5px; font-weight: 400; }
+.metric-number { margin: 6px 0 4px; color: var(--ink); font-size: 24px; font-weight: 500; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.metric-number > span { color: var(--muted-2); margin-left: 6px; font-size: 11.5px; font-weight: 500; letter-spacing: .04em; }
+.metric-foot { color: var(--muted-2); font-size: 12.5px; line-height: 1.5; }
+/* Gain green and loss red, used for P&L and nothing else. After .metric-number, so the
+   P&L figure takes the semantic colour rather than the neutral ink. */
+.positive { color: var(--pos); }
+.negative { color: var(--neg); }
+
+/* Status line: one quiet row of provenance under both columns. */
+.overview-status { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; min-width: 0; padding: 10px 28px; border-top: 1px solid var(--line); }
+.snapshot-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; min-width: 0; font-size: 12px; line-height: 1.6; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.snapshot-dot { flex: none; width: 5px; height: 5px; margin-right: 8px; border-radius: 50%; background: var(--brand); }
+.snapshot-divider { color: var(--line-2); margin: 0 7px; }
+/* The full method / FX-provenance disclosure, collapsed behind 数据说明. */
+.overview-method { flex: none; min-width: 0; margin-left: auto; font-size: 12px; }
+.overview-method[open] { flex: 1 0 100%; }
+/* The allocation table's 数据说明 (.block-method) is the same disclosure, so the two read as one. */
+.overview-method > summary, .block-method > summary { display: flex; align-items: center; gap: 5px; width: fit-content; margin-left: auto; padding: 2px 6px; border-radius: 6px; color: var(--muted-2); cursor: pointer; list-style: none; }
+.overview-method > summary::-webkit-details-marker, .block-method > summary::-webkit-details-marker { display: none; }
+.overview-method > summary .icon, .block-method > summary .icon { width: 14px; height: 14px; color: var(--faint); }
+.overview-method > summary:hover, .block-method > summary:hover { color: var(--ink); background: var(--hover); }
+.overview-method > summary:focus-visible, .block-method > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.overview-method-body, .block-method-body { margin-top: 6px; padding: 10px 12px; border-radius: var(--radius-inner); background: var(--surface-2); }
+.method-note { max-width: 96ch; margin: 0; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
+
+/* ---- Wealth goal --------------------------------------------------------------------- */
+/* The right column of the overview. Its progress figure and bar are the one place Klein Blue
+   is used at size on the first screen, because progress is exactly what the brand marks. */
+.goal-card { min-width: 0; padding: 24px 28px 22px; border-left: 1px solid var(--line); }
+.overview-panel-goal-only .goal-card { border-left: 0; }
+.goal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.goal-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; color: var(--muted); font-size: 12.5px; font-weight: 500; letter-spacing: 0; line-height: 1.4; }
+.goal-eyebrow { color: var(--faint); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; }
+/* Quiet but findable: a text control that gains a surface only on hover. */
+.goal-edit-button { display: inline-flex; align-items: center; gap: 5px; flex: none; min-height: 28px; margin: -4px -8px -4px 0; padding: 0 8px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.goal-edit-button:hover, .goal-edit-button[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
+.goal-edit-button .icon { width: 14px; height: 14px; color: var(--muted-2); }
+.goal-edit-button:hover .icon { color: var(--brand); }
+
+.goal-figures { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; min-width: 0; }
+/* The progress figure is the headline of this column. It is never capped: see goalProgressPct. */
+.goal-percent { color: var(--brand); font-size: 28px; font-weight: 500; letter-spacing: -.025em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.goal-amounts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.goal-current { color: var(--ink-2); font-weight: 500; }
+.goal-slash { color: var(--line-2); }
+.goal-target-wrap { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+.goal-target-label { display: none; color: var(--muted-2); font-size: 12px; font-weight: 500; }
+.goal-target { color: var(--muted); font-weight: 400; }
+.goal-unit { margin-right: 4px; color: var(--muted-2); font-size: .85em; font-weight: 500; letter-spacing: 0; }
+
+.goal-track { height: 6px; border-radius: 3px; background: var(--brand-soft-2); overflow: hidden; }
+.goal-fill { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width 420ms cubic-bezier(.4, 0, .2, 1); }
+/* At or past the target the fill is full width; the deeper tone reads as arrival. The figure
+   above still states the real number, which may be well over 100%. */
+.goal-fill-complete { background: var(--brand-deep); }
+
+.goal-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 14px; margin-top: 10px; color: var(--muted-2); font-size: 12.5px; }
+.goal-foot strong { color: var(--ink-2); font-weight: 550; font-variant-numeric: tabular-nums; }
+
+/* The goal is denominated in a currency the page is not reporting in: one quiet line saying the
+   progress was converted. Nothing failed here, so it is plain text, not a panel. */
+.goal-fx-note { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 8px 0 0; color: var(--muted-2); font-size: 12px; line-height: 1.55; }
+/* No conversion could be made: a disclosure that says why, with nothing to click. */
+.goal-fx-unavailable { display: flex; align-items: center; gap: 8px 12px; margin: 12px 0 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-inner); background: var(--surface-2); color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.goal-fx-unavailable > .icon { flex: none; width: 16px; height: 16px; color: var(--muted-2); }
+.goal-fx-unavailable > span { flex: 1 1 auto; min-width: 0; }
+
+/* The inline editor expands inside the column it edits. */
+.goal-editor { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.goal-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--muted); font-size: 12px; }
+.goal-field-amount { flex: 1 1 160px; max-width: 280px; }
+/* Specific enough to survive the phone-width .currency-select rule tuned for the topbar. */
+.goal-field > .goal-currency-select { margin-left: 0; min-height: var(--control-h); padding: 0 26px 0 10px; font-size: 14px; }
+.goal-field input { width: 100%; min-width: 0; min-height: var(--control-h); padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); color: var(--ink); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.goal-field input:hover { border-color: #b9bdc5; }
+.goal-field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.goal-field input[aria-invalid="true"] { border-color: var(--danger-line); background: var(--danger-soft); }
+.goal-actions { display: flex; gap: 8px; margin-left: auto; }
+.goal-save { min-height: var(--control-h); padding: 0 16px; border: 0; border-radius: var(--radius-control); background: var(--brand); color: #fff; font-size: 13px; font-weight: 550; }
+.goal-save:hover { background: var(--brand-deep); }
+.goal-cancel { min-height: var(--control-h); padding: 0 14px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.goal-cancel:hover { background: var(--hover); border-color: #b9bdc5; }
+.goal-error { flex: 1 0 100%; margin: 0; color: var(--danger); font-size: 13px; }
+
+/* ---- Section rhythm ---------------------------------------------------------------- */
+/* Sections are separated by a hairline rule and a measured gap, not by ever-larger blanks. */
+section + section { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--line); }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+h2 { color: var(--ink); font-size: 21px; font-weight: 600; letter-spacing: -.3px; line-height: 1.3; margin: 0; }
+/* The English label is tertiary metadata, not a second heading. */
+.section-heading > span { flex: none; font-size: 10.5px; color: var(--faint); letter-spacing: .1em; font-weight: 500; }
+h3 { margin: 0; color: var(--ink); font-size: 15px; font-weight: 600; letter-spacing: -.1px; line-height: 1.35; }
+
+/* ---- Allocation ----------------------------------------------------------------------
+   ONE surface for the whole section, the same way the overview is one panel. Its blocks —
+   the target editor, target vs actual, and the asset / broker pair — are divided by hairlines
+   and each opens with a small subhead, so 资产配置 is the section's only headline. */
+.allocation-panel { min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.allocation-panel > * + * { border-top: 1px solid var(--line); }
+.alloc-block { min-width: 0; padding: 20px 22px; }
+/* A block subhead: the Chinese title, with its English label as tertiary metadata beside it
+   rather than as a second heading line. */
+.block-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.block-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; margin-right: auto; }
+.block-eyebrow { color: var(--faint); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; }
+.small-label { flex: none; white-space: nowrap; color: var(--muted-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Reading notes and caveats are captions: small, gray, and flush with the block's text edge. */
+.table-note { max-width: 110ch; margin: 0; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
+/* A caveat about what a bar can and cannot show is a disclosure, not an alarm. */
+.chart-note { max-width: 110ch; margin: 10px 0 0; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
+
+/* Target vs actual. The table runs edge to edge so its hairlines meet the panel border; the
+   subhead and captions keep the block's text edge. */
+.category-card { padding: 20px 0 16px; }
+.category-card > :not(.table-scroll) { margin-left: 22px; margin-right: 22px; }
+.category-key { margin-top: 12px; }
+.target-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--muted-2); font-size: 12px; }
+.target-legend > span { display: flex; align-items: center; gap: 6px; }
+.target-legend i { width: 8px; height: 8px; border-radius: 2px; background: var(--brand); }
+.target-legend b { width: 2px; height: 11px; border-radius: 1px; background: var(--muted-2); }
+/* The methodology behind 数据说明: the overview's disclosure, reused (see .overview-method).
+   Open, it takes a row of its own under the subhead. */
+.block-method { flex: none; min-width: 0; font-size: 12px; }
+.block-method[open] { flex: 1 0 100%; }
+.block-method-body { display: grid; gap: 4px; }
+
+/* Asset and broker allocation: two columns of one block, divided by a hairline. Each list is a
+   compact ledger — name, bar, share, amount on one line — so neither column needs the other's
+   height, and a short broker list simply ends. */
+.allocation-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.allocation-grid > .broker-card { border-left: 1px solid var(--line); }
+.asset-bars, .broker-rows { display: grid; grid-template-columns: minmax(0, max-content) minmax(40px, 1fr) auto auto; gap: 14px 16px; margin: 16px 0 0; padding: 0; list-style: none; }
+/* Each row is a subgrid of the list, so names, bars, shares and amounts align down the column. */
+.asset-item, .broker-rows > li:not(.empty-state) { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-width: 0; }
+.asset-label, .broker-row-head { display: contents; }
+.asset-label > span, .broker-row-head > span { grid-row: 1; grid-column: 1; display: flex; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); font-size: 13.5px; }
+.asset-label i, .broker-row-head i { flex: none; width: 7px; height: 7px; border-radius: 2px; }
+.asset-label strong, .broker-row-head b { grid-row: 1; grid-column: 3; color: var(--ink); font-size: 13.5px; font-weight: 550; text-align: right; font-variant-numeric: tabular-nums; }
+.asset-track, .broker-rows .thin-track { grid-row: 1; grid-column: 2; height: 4px; margin: 0; border-radius: 3px; background: var(--line); overflow: hidden; }
+.asset-track > span, .thin-track > span { display: block; height: 100%; border-radius: inherit; }
+.asset-value, .broker-row-value { grid-row: 1; grid-column: 4; margin: 0; text-align: right; color: var(--muted-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.asset-bars > .empty-state, .broker-rows > .empty-state { grid-column: 1 / -1; }
+.asset-item-negative .asset-value { color: var(--neg); }
+.asset-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.asset-footer + .asset-footer { margin-top: 10px; }
+.asset-footer strong { color: var(--ink); font-weight: 550; font-variant-numeric: tabular-nums; }
+.asset-card > .table-note { margin-top: 10px; }
+
+/* ---- Allocation targets --------------------------------------------------------------
+   One segmented bar for the whole portfolio, then one metric cell per layer. The bar is the
+   only distinctive element, and it earns that by being the control. The cells share one grid
+   divided by hairlines rather than being nested in boxes of their own. */
+.alloc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.alloc-heading { min-width: 0; }
+.alloc-subtitle { margin: 4px 0 0; color: var(--muted-2); font-size: 12.5px; line-height: 1.6; }
+.alloc-edit-button { display: inline-flex; align-items: center; gap: 6px; flex: none; min-height: 32px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.alloc-edit-button:hover { background: var(--hover); border-color: #b9bdc5; color: var(--ink); }
+.alloc-edit-button .icon { width: 15px; height: 15px; color: var(--muted-2); }
+
+/* Extra vertical padding while editing leaves room for the handles to sit proud of the track. */
+.alloc-bar-wrap { padding: 16px 0 0; }
+.alloc-bar-editing { padding-top: 22px; }
+.alloc-bar { position: relative; display: flex; height: 38px; border-radius: var(--radius-inner); background: var(--brand-soft-2); overflow: hidden; }
+.alloc-bar-editing .alloc-bar { overflow: visible; }
+/* A hairline between segments keeps two adjacent tones legible as two segments. */
+.alloc-seg { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; box-shadow: inset -1px 0 0 rgba(255, 255, 255, .6); transition: width var(--ease); }
+.alloc-bar-editing .alloc-seg { transition: none; }
+.alloc-seg:first-child { border-radius: var(--radius-inner) 0 0 var(--radius-inner); }
+.alloc-seg:last-child { border-radius: 0 var(--radius-inner) var(--radius-inner) 0; box-shadow: none; }
+.alloc-seg-label { display: flex; align-items: baseline; gap: 6px; padding: 0 6px; font-size: 13px; font-weight: 550; letter-spacing: -.1px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.alloc-seg-name { font-size: 12px; font-weight: 500; opacity: .88; }
+
+/* One draggable boundary. `touch-action: none` is what makes a touch-drag a drag rather than a
+   page scroll; the pointer capture that keeps the gesture alive is set in the component. The
+   handle is the one element that genuinely floats, so it is the one that keeps a shadow. */
+.alloc-handle { position: absolute; top: -7px; bottom: -7px; width: 30px; margin-left: -15px; display: flex; align-items: center; justify-content: center; gap: 2px; touch-action: none; cursor: ew-resize; }
+.alloc-handle::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 12px; margin-left: -6px; border-radius: 6px; background: #fff; box-shadow: 0 0 0 1px var(--line-2), var(--shadow-float); }
+.alloc-handle > i { position: relative; width: 2px; height: 12px; border-radius: 1px; background: var(--brand-mid); }
+.alloc-handle:hover::before { box-shadow: 0 0 0 1px var(--brand-mid), var(--shadow-float); }
+.alloc-handle:focus-visible { outline: none; }
+.alloc-handle:focus-visible::before { box-shadow: 0 0 0 2px var(--brand), var(--shadow-float); }
+
+/* One metric cell per layer: a hairline above the row, and a hairline between cells. */
+.alloc-layers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 18px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.alloc-layer { min-width: 0; padding: 14px 20px 2px; }
+.alloc-layer:first-child { padding-left: 0; }
+.alloc-layer:last-child { padding-right: 0; }
+.alloc-layer + .alloc-layer { border-left: 1px solid var(--line); }
+.alloc-layer-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; min-width: 0; }
+.alloc-layer-name { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); font-size: 13.5px; font-weight: 550; }
+.alloc-swatch { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+/* The mapping, visible: which existing category this layer's actual share is read from. */
+.alloc-layer-source { color: var(--faint); font-size: 10.5px; font-weight: 500; letter-spacing: .04em; overflow-wrap: anywhere; }
+/* Actual and target as two small labelled figures. The actual is data, so it is ink; the target
+   is the user's setting, so it takes the brand colour the bar above it uses. */
+.alloc-layer-figures { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.alloc-figure { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.alloc-figure-label { color: var(--muted-2); font-size: 11.5px; }
+.alloc-figure strong { color: var(--ink); font-size: 18px; font-weight: 550; letter-spacing: -.02em; line-height: 1.25; }
+.alloc-figure-target { color: var(--brand) !important; }
+/* Deviation is deliberately neither green nor red — a layer above or below a personal target is
+   neither gain nor loss — and not brand blue either, since it is not a control or a target. It
+   is neutral ink, a lighter gray when there is none, and the direction is always spelled out
+   in words beside it. */
+.alloc-layer-gap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 6px; margin-top: 6px; color: var(--muted-2); font-size: 12px; }
+.alloc-gap-value { color: var(--muted-2); font-weight: 500; font-variant-numeric: tabular-nums; }
+.alloc-layer-gap-off .alloc-gap-value { color: var(--ink-2); font-weight: 550; }
+
+.alloc-editor { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.alloc-editor-hint { flex: 1 1 260px; margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.alloc-editor-hint strong { color: var(--brand); font-weight: 600; font-variant-numeric: tabular-nums; }
+.alloc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.alloc-save { min-height: var(--control-h); padding: 0 16px; border: 0; border-radius: var(--radius-control); background: var(--brand); color: #fff; font-size: 13px; font-weight: 550; }
+.alloc-save:hover { background: var(--brand-deep); }
+.alloc-cancel, .alloc-reset { min-height: var(--control-h); padding: 0 14px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.alloc-cancel:hover, .alloc-reset:hover { background: var(--hover); border-color: #b9bdc5; }
+.alloc-note { margin-top: 14px; }
+.alloc-note + .alloc-note { margin-top: 2px; }
+
+/* ---- Tables ------------------------------------------------------------------------ */
+.table-scroll { position: relative; min-width: 0; max-width: 100%; width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+table { border-collapse: collapse; width: 100%; text-align: left; font-size: 14px; font-variant-numeric: tabular-nums; }
+th { font-weight: 500; }
+/* Column captions: small, gray, never louder than the values beneath them. */
+thead th { color: var(--muted-2); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.positions-table .positive, .position-details .positive { color: var(--pos-strong); }
+td, th { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+td:first-child, th:first-child { padding-left: 22px; }
+td:last-child, th:last-child { padding-right: 22px; }
+.numeric { text-align: right; white-space: nowrap; }
+.muted { color: var(--muted-2); }
+.category-table { min-width: 760px; margin-top: 12px; }
+.category-table td, .category-table th { padding-left: 12px; padding-right: 12px; }
+.category-table td:first-child, .category-table th:first-child { padding-left: 22px; width: 140px; }
+.category-table td:last-child, .category-table th:last-child { padding-right: 22px; }
+.category-table td:nth-child(2) { width: 22%; }
+.category-table thead th { padding-top: 8px; padding-bottom: 8px; border-top: 1px solid var(--line); }
+.category-table tbody th { color: var(--ink); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.category-table td { padding-top: 10px; padding-bottom: 10px; color: var(--ink-2); font-size: 14px; }
+.category-dot { display: inline-block; width: 7px; height: 7px; margin-right: 10px; border-radius: 50%; vertical-align: 1px; }
+.category-track { position: relative; height: 4px; border-radius: 3px; background: var(--line); }
+.category-track > span { display: block; height: 100%; border-radius: inherit; }
+.category-track > i { position: absolute; top: -4px; height: 12px; width: 2px; border-radius: 1px; background: var(--ink-2); transform: translateX(-1px); }
+.gap-value { color: var(--ink-2); font-weight: 450; }
+/* A count beside a heading is plain gray tabular text, not a badge. */
+.count-pill { display: inline-block; min-width: 0; padding: 0; margin-left: 8px; border: 0; border-radius: 0; background: none; color: var(--muted-2); font-size: 15px; font-weight: 500; letter-spacing: 0; vertical-align: baseline; font-variant-numeric: tabular-nums; }
+/* An unmapped position is an action item, so it is set apart from the plain count — quietly,
+   with a dashed neutral outline rather than a second accent colour. */
+.needs-classification-pill { padding: 1px 7px; border: 1px dashed var(--line-2); border-radius: 5px; color: var(--muted); font-size: 12px; vertical-align: 2px; }
+
+/* ---- Positions --------------------------------------------------------------------- */
+.positions-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; }
+.positions-toolbar > div:first-child { min-width: 0; flex: 1 1 380px; }
+/* A block subhead under the section's one headline, not a second card title. */
+/* 数据说明 closes the toolbar row; opened, its note takes a full row beneath it (as in allocation). */
+.positions-toolbar > .block-method { margin-left: auto; }
+.positions-toolbar > .block-method[open] { margin-top: -8px; }
+.positions-toolbar h3 { color: var(--ink-2); font-size: 13.5px; font-weight: 550; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.search-field { display: flex; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background: var(--card); transition: border-color var(--ease), box-shadow var(--ease); }
+.search-field:hover { border-color: #b9bdc5; }
+.search-field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.search-field .icon { flex: none; color: var(--muted-2); width: 15px; height: 15px; }
+.search-field input { width: 180px; height: calc(var(--control-h) - 2px); border: 0; outline: 0; outline-offset: 0; background: transparent; color: var(--ink); font-size: 13.5px; }
+.search-field input::placeholder { color: var(--faint); }
+select { max-width: 200px; min-width: 132px; min-height: var(--control-h); padding: 0 28px 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius-control); background-color: var(--card); color: var(--ink); font-size: 13.5px; }
+select:hover { border-color: #b9bdc5; }
+select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+/* The holdings table reads as a workstation ledger. Rows are divided by
+   hairlines only, the symbol and the market value carry the row, and the classification
+   editor rests as plain metadata until it is hovered, focused or opened. */
+.positions-table { min-width: 1140px; font-size: 13.5px; }
+.positions-table td, .positions-table th { padding-left: 12px; padding-right: 12px; }
+.positions-table td:first-child, .positions-table th:first-child { padding-left: 22px; }
+.positions-table td:last-child, .positions-table th:last-child { padding-right: 22px; }
+.positions-table thead th, .positions-table td.numeric { white-space: nowrap; }
+/* The header is column metadata: small, muted, unfilled, between two hairlines. */
+.positions-table thead th { padding-top: 8px; padding-bottom: 8px; color: var(--muted-2); font-size: 11.5px; font-weight: 500; letter-spacing: .01em; border-top: 1px solid var(--line); }
+.positions-table tbody tr:not(.details-row) { transition: background var(--ease); }
+.positions-table tbody tr:not(.details-row):hover { background: var(--row-hover); }
+.positions-table tbody td, .positions-table tbody th { padding-top: 10px; padding-bottom: 10px; color: var(--ink-2); }
+.asset-identity { display: flex; align-items: center; gap: 10px; }
+.asset-identity > div { min-width: 0; }
+/* Holding logo: a local company image, or a quiet neutral initial when there is none. */
+.holding-logo { flex: none; box-sizing: border-box; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; object-fit: contain; }
+.holding-logo-fallback { display: grid; place-items: center; border-color: transparent; background: var(--hover); color: var(--muted); font-size: 12px; font-weight: 600; }
+/* Identity: the symbol is the strongest text in the row; the broker is tertiary. */
+.asset-identity strong { display: block; color: var(--ink); font-size: 14px; font-weight: 600; letter-spacing: -.1px; line-height: 1.3; }
+.asset-identity div > span { display: block; margin-top: 1px; color: var(--muted-2); font-size: 11.5px; font-weight: 400; line-height: 1.35; }
+/* Figures: tabular and right-aligned. Market value leads; quantity and price step back; the
+   repeated currency code recedes behind every amount. */
+.positions-table td.numeric { font-variant-numeric: tabular-nums; }
+.positions-table td.numeric-secondary { color: var(--muted); }
+.amount-code { color: var(--muted-2); font-size: 11.5px; font-weight: 400; letter-spacing: .02em; }
+/* Classification, read-only: plain metadata text. Category identity is carried by the label. */
+.category-tag { white-space: nowrap; display: inline-block; padding: 0 6px; border: 1px solid transparent; border-radius: 5px; color: var(--ink-2); background: transparent; font-size: 12.5px; font-weight: 500; line-height: 1.5; }
+/* A position with no mapping entry is an action item, marked quietly with a dashed outline. */
+.category-tag.state-needs_classification { border-style: dashed; border-color: var(--line-2); color: var(--muted); }
+.category-mid, .category-high-beta { color: var(--ink-2); background-color: transparent; }
+.category-bonds { color: var(--muted); background-color: transparent; }
+.category-unclassified { color: var(--muted); background-color: transparent; border: 1px dashed var(--line-2); }
+/* The classification selector IS the classification display. It stays a
+   native <select> — same keyboard, popup and accessible name — dressed as quiet metadata: no
+   border or fill at rest, only a small persistent chevron saying it can be changed. Hover
+   and keyboard focus give it a surface; an open popup is the editor. `field-sizing` sizes it
+   to the selected label, so the chevron sits beside the text rather than after the widest
+   option. It reuses the .category-* and .state-* hooks above, so an unmapped position keeps
+   its dashed treatment even at rest — an action item stays visible. */
+.category-select { appearance: none; -webkit-appearance: none; field-sizing: content; white-space: nowrap; max-width: none; min-width: 0; width: auto; min-height: 28px; padding: 0 20px 0 6px; border: 1px solid transparent; border-radius: 6px; color: var(--ink-2); background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none' stroke='%23979ca5' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.75 5 6.25l2.5-2.5'/%3E%3C/svg%3E") no-repeat right 6px center / 10px 10px; font-size: 12.5px; font-weight: 500; line-height: 1.5; }
+.category-select:hover:not(:disabled), .category-select:focus-visible { background-color: var(--hover); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none' stroke='%232c313a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.75 5 6.25l2.5-2.5'/%3E%3C/svg%3E"); color: var(--ink); }
+/* The global select focus is a full brand border and halo; here only keyboard focus shows,
+   through the shared restrained Klein Blue outline, so a mouse pick settles back to rest. */
+.category-select:focus { border-color: transparent; box-shadow: none; }
+.category-select.state-needs_classification { border-style: dashed; border-color: var(--line-2); color: var(--muted); }
+.category-select.state-needs_classification:hover:not(:disabled) { border-color: #b9bdc5; }
+/* Saving is per row: a local metadata write is not a refresh, so only this control
+   is busy. `progress` rather than `not-allowed` says "in flight", not "forbidden". */
+.category-select:disabled { opacity: .55; cursor: progress; }
+/* Kept apart: a browser without :open drops only this rule, never the ones above. */
+.category-select:open { background-color: var(--hover); }
+.classification-error { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 22px; border-top: 1px solid var(--danger-line); color: var(--danger); background: var(--danger-soft); font-size: 13px; line-height: 1.55; }
+.classification-error svg { flex: none; width: 16px; height: 16px; }
+.classification-error span { flex: 1; }
+.classification-error .text-button { color: var(--danger); }
+.classification-error .text-button:hover { background: #fbe6e6; }
+/* Type and classification read as one line of metadata — 股票 / Equity · 核心仓 — and wrap
+   only when the column is genuinely too narrow. The separator is drawn, not text, so the
+   cell's text content is unchanged. */
+.type-category-stack { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+/* Asset type is metadata beside the editable classification: plain gray text. */
+.asset-type-tag { white-space: nowrap; display: inline-block; padding: 0; border: 0; border-radius: 0; color: var(--muted-2); background: none; font-size: 12px; font-weight: 400; letter-spacing: 0; }
+/* The separator belongs to the classification, not the asset type, and cannot wrap apart
+   from it: when the line is too narrow, "· 待分类 / …" moves down as one piece. The empty
+   alt text keeps the drawn dot out of the accessibility tree. */
+.classification-meta { display: inline-flex; align-items: center; min-width: 0; white-space: nowrap; }
+.classification-meta::before { content: '·'; content: '·' / ''; margin: 0 2px 0 6px; color: var(--faint); }
+.asset-type-equity, .asset-type-etf, .asset-type-security, .asset-type-option { color: var(--muted-2); background: none; }
+.native-currency { color: var(--muted-2); font-size: 12.5px; }
+/* Market value is the row's primary figure. */
+.base-value { color: var(--ink); font-size: 14px; font-weight: 550; }
+.expand-button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; color: var(--faint); background: transparent; }
+.expand-button:hover { background: var(--hover); color: var(--ink); }
+.expand-button .icon { width: 15px; height: 15px; transition: transform var(--ease); }
+.expand-button.is-open { color: var(--brand); }
+.expand-button.is-open .icon { transform: rotate(90deg); }
+/* An open position and its inspector share one inset tone, a step clearer than hover, and
+   read as one unit: the inspector is indented to the symbol's text edge and laid out as
+   label/value ledger lines divided by hairlines — no box, radius or shadow of its own. */
+.positions-table tbody tr.expanded-row, .positions-table tbody tr.expanded-row:hover { background: var(--inset); }
+.details-row { background: var(--inset); }
+.details-row > td { padding: 2px 22px 14px 64px !important; }
+.details-title, .position-details { max-width: min(1040px, calc(100vw - 344px)); }
+.details-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 6px; color: var(--ink-2); font-size: 12.5px; font-weight: 550; }
+.details-title > span { color: var(--muted-2); font-size: 12px; font-weight: 400; }
+.position-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); column-gap: 32px; }
+.position-details > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; padding: 7px 0; border-top: 1px solid var(--line); }
+.position-details div > span { flex: none; color: var(--muted-2); font-size: 12px; }
+.position-details strong { min-width: 0; color: var(--ink); font-weight: 500; font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.positions-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 22px; color: var(--muted-2); font-size: 12px; }
+
+/* ---- FX disclosure strip ------------------------------------------------------------
+   FX is acknowledged, not featured: one compact secondary strip at the page foot, set off by
+   a hairline rather than boxed. */
+.fx-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 36px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; color: var(--muted-2); font-size: 12px; }
+.fx-strip-label { flex: none; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+.fx-strip-item { color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.fx-strip-item strong { color: var(--ink-2); font-weight: 550; }
+/* The compact status line, in the manner of the overview's snapshot line. */
+.fx-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-width: 0; }
+.fx-rates { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.fx-note, .fx-asof { max-width: 110ch; margin: 0; color: var(--muted-2); font-size: 12px; line-height: 1.6; }
+.mock-label { flex: none; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; font-size: 11px; letter-spacing: .02em; }
+
+/* ---- Footer, loading, errors, empties ---------------------------------------------- */
+.page-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; color: var(--faint); margin-top: 24px; padding: 16px 0 28px; border-top: 1px solid var(--line); font-size: 12px; }
+.page-footer > span { display: flex; align-items: center; gap: 8px; }
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; gap: 10px; color: var(--muted); }
+.loading-state h2 { margin-top: 6px; color: var(--ink); font-size: 17px; font-weight: 550; }
+.loading-state p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.loading-orbit { width: 26px; height: 26px; border: 2px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite; }
+.error-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; margin: 20px 0; border: 1px solid var(--danger-line); border-radius: 10px; background: var(--danger-soft); color: var(--danger); font-size: 14px; }
+.error-banner strong { font-weight: 550; }
+.error-banner p { margin: 4px 0 0; color: #9c3434; font-size: 13px; line-height: 1.6; }
+.error-banner button { flex-shrink: 0; min-height: 32px; padding: 0 12px; border: 1px solid var(--danger-line); border-radius: var(--radius-control); background: #fff; color: var(--danger); font-size: 13px; font-weight: 550; }
+.error-banner button:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+.empty-state { display: flex; align-items: center; flex-direction: column; gap: 8px; padding: 36px 20px; color: var(--muted); text-align: center; }
+.empty-state .icon { width: 24px; height: 24px; margin-bottom: 4px; color: #c4c8cf; }
+.empty-state strong { color: var(--ink); font-size: 15px; font-weight: 550; }
+.empty-state > span { font-size: 13px; }
+.text-button { padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--brand); font-size: 13px; font-weight: 550; }
+.text-button:hover { background: var(--brand-soft); }
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Responsive -------------------------------------------------------------------- */
+@media (min-width: 1600px) {
+  .page-content { padding: 32px 48px 0; }
+  .topbar { padding: 0 48px; }
+}
+
+@media (max-width: 1250px) {
+  .page-content { padding-left: 24px; padding-right: 24px; }
+  .topbar { padding-left: 24px; padding-right: 24px; }
+  .summary-grid, .goal-card { padding: 22px 24px 20px; }
+  .overview-status { padding-left: 24px; padding-right: 24px; }
+  .allocation-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  /* Four layer cells no longer fit comfortably on one row: two rows of two, which keeps every
+     cell wide enough for its 当前/目标 pair to stay on one line. The hairlines follow the grid:
+     one between the columns, one between the rows. */
+  .alloc-layers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .alloc-layer { padding-bottom: 14px; }
+  .alloc-layer:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .alloc-layer:nth-child(even) { padding-right: 0; }
+  .alloc-layer:nth-child(n+3) { border-top: 1px solid var(--line); }
+  h1, h2 { font-size: 20px; }
+}
+
+@media (max-width: 1000px) {
+  .sidebar { width: 176px; padding-left: 10px; padding-right: 10px; }
+  .main-content { margin-left: 176px; }
+  .brand { margin-left: 8px; }
+  .workspace-identity { margin-left: 8px; }
+  .workspace-editor { margin-left: 4px; }
+  .nav-link { padding: 0 8px; gap: 8px; font-size: 13px; }
+  .total-number { font-size: 36px; }
+  /* Too narrow for two ledgers side by side: broker allocation follows asset allocation, and
+     the hairline between them turns from vertical to horizontal. */
+  .allocation-grid { grid-template-columns: 1fr; }
+  .allocation-grid > .broker-card { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+@media (max-width: 760px) {
+  .app-shell { display: block; }
+  .sidebar { position: relative; width: 100%; padding: 14px 20px 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand { margin: 0 0 10px; }
+  .sidebar nav { display: flex; gap: 2px; margin-left: -6px; margin-right: -6px; }
+  .nav-link { flex: 1; justify-content: center; padding: 0 8px; min-height: 40px; gap: 7px; border-radius: 6px 6px 0 0; font-size: 13.5px; white-space: nowrap; }
+  .nav-link.active { background: transparent; }
+  /* On the horizontal tab row, the selection rule sits under the tab instead of beside it. */
+  .nav-link.active::before { top: auto; bottom: 0; left: 10px; right: 10px; width: auto; height: 2px; }
+  .nav-link .icon { width: 15px; height: 15px; }
+  .workspace-identity, .workspace-editor { display: none; }
+  .main-content { margin: 0; }
+  .topbar { height: 52px; padding: 0 20px; }
+  .topbar-badges { gap: 12px; }
+  .mock-badge { font-size: 12px; }
+  .currency-badge { font-size: 12px; }
+  .currency-badge strong { margin-left: 5px; font-size: 13px; }
+  .currency-select { margin-left: 6px; min-height: 32px; padding: 0 22px 0 8px; font-size: 13px; }
+  .page-content { padding: 22px 20px 0; }
+  /* The overview becomes one column: total, P&L, then the goal under a hairline. */
+  .overview-panel { grid-template-columns: minmax(0, 1fr); }
+  .summary-grid, .goal-card { padding: 20px 18px 18px; }
+  .summary-grid { gap: 18px; }
+  .goal-card { border-left: 0; border-top: 1px solid var(--line); }
+  .overview-status { padding: 10px 18px; }
+  .total-number { font-size: 34px; }
+  .refresh-button { min-height: 36px; }
+  .goal-edit-button { min-height: 36px; margin-top: -8px; margin-bottom: -8px; }
+  .goal-percent { font-size: 26px; }
+  /* The segmented bar stays a bar, and stays draggable, but drops the layer NAMES from inside
+     the segments and keeps only the percentages — the names are right below it, each with the
+     matching swatch. The bar gets taller so the handles remain a comfortable touch target. */
+  .alloc-block { padding: 18px; }
+  .category-card { padding: 18px 0 14px; }
+  .category-card > :not(.table-scroll) { margin-left: 18px; margin-right: 18px; }
+  .category-table td:first-child, .category-table th:first-child { padding-left: 18px; }
+  .category-table td:last-child, .category-table th:last-child { padding-right: 18px; }
+  .alloc-bar { height: 44px; }
+  .alloc-seg-name { display: none; }
+  .alloc-handle { width: 40px; margin-left: -20px; }
+  section + section { margin-top: 28px; padding-top: 22px; }
+  .section-heading { gap: 8px; margin-bottom: 14px; }
+  h1, h2 { font-size: 19px; }
+  .section-heading > span { font-size: 10px; letter-spacing: .06em; }
+  .overview-heading { margin-bottom: 12px; }
+  .positions-toolbar { padding: 16px 18px; }
+  .filters { width: 100%; }
+  .search-field { flex: 1; min-width: 0; }
+  .search-field input { width: 100%; min-width: 0; }
+  /* The table scrolls sideways here, so the inspector is sized to the visible width rather
+     than the table's, and drops its desktop indent to the cell edge. */
+  .details-row > td { padding: 2px 18px 12px !important; }
+  .details-title, .position-details { max-width: calc(100vw - 80px); }
+  .fx-strip { margin-top: 28px; }
+  .page-footer { flex-wrap: wrap; gap: 10px; }
+}
+
+@media (max-width: 480px) {
+  .sidebar { padding: 12px 16px 0; }
+  .nav-link { padding: 0 5px; gap: 5px; font-size: 12.5px; }
+  .nav-link .icon { width: 14px; height: 14px; }
+  .topbar { padding: 0 16px; }
+  /* The selector stays reachable at the smallest width; only its label is dropped. */
+  .currency-badge-label { display: none; }
+  .currency-select { margin-left: 0; }
+  .page-content { padding: 20px 16px 0; }
+  /* Smallest width: the overview keeps its one column with tighter gutters, and the goal
+     editor's amount field and Save/Cancel pair each take a full row, so nothing is clipped
+     and every target stays comfortably tappable. */
+  .summary-grid, .goal-card { padding: 18px 16px 16px; }
+  .overview-status { padding: 10px 16px; }
+  .overview-heading-aside { gap: 10px; }
+  .total-number { font-size: 32px; }
+  .metric-number { font-size: 22px; }
+  .goal-percent { font-size: 24px; }
+  .goal-foot, .goal-fx-unavailable { font-size: 12px; }
+  /* Smallest width: one layer cell per row — name and mapping on top, then the actual/target
+     figures with the deviation beside them — the edit control drops under the title, and the
+     three editor buttons share a full row so all three stay tappable. */
+  .alloc-block { padding: 16px; }
+  .category-card { padding: 16px 0 12px; }
+  .category-card > :not(.table-scroll) { margin-left: 16px; margin-right: 16px; }
+  .category-table td:first-child, .category-table th:first-child { padding-left: 16px; }
+  .category-table td:last-child, .category-table th:last-child { padding-right: 16px; }
+  .alloc-head { flex-wrap: wrap; gap: 12px; }
+  .alloc-edit-button { margin-top: 0; min-height: 36px; }
+  .alloc-layers { grid-template-columns: 1fr; }
+  .alloc-layer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: 12px; padding: 12px 0; }
+  .alloc-layer + .alloc-layer { border-left: 0; border-top: 1px solid var(--line); }
+  .alloc-layer-head { grid-column: 1 / -1; }
+  .alloc-layer-figures { margin-top: 8px; }
+  .alloc-layer-gap { justify-content: flex-end; margin-top: 0; text-align: right; }
+  /* The ledgers keep name, share and amount on one line and move the bar beneath them. */
+  .asset-bars, .broker-rows { grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px 12px; }
+  .asset-track, .broker-rows .thin-track { grid-row: 2; grid-column: 1 / -1; margin-top: 7px; }
+  .asset-label strong, .broker-row-head b { grid-column: 2; }
+  .asset-value, .broker-row-value { grid-column: 3; }
+  .alloc-actions { flex: 1 0 100%; }
+  .alloc-actions button { flex: 1; padding: 0; }
+  .goal-editor { gap: 10px; margin-top: 14px; padding-top: 14px; }
+  .goal-field-amount { flex-basis: 100%; max-width: none; }
+  .goal-actions { flex: 1 0 100%; }
+  .goal-actions button { flex: 1; padding: 0; }
+  .total-card-bottom, .mini-tag, .metric-foot { font-size: 12px; }
+  section + section { margin-top: 24px; padding-top: 20px; }
+  .section-heading > span { font-size: 9.5px; letter-spacing: .04em; }
+  h1, h2 { font-size: 18px; }
+  h3 { font-size: 14.5px; }
+  .asset-label > span, .broker-row-head > span, .asset-label strong, .broker-row-head b { font-size: 13px; }
+  .asset-footer { font-size: 12px; }
+  .target-legend { gap: 4px 10px; font-size: 11.5px; }
+  .table-note, .chart-note { font-size: 11.5px; }
+  .filters { gap: 8px; }
+  select { min-width: 116px; max-width: 150px; min-height: var(--control-h); padding-left: 9px; font-size: 13px; }
+  /* The classification selector must stay narrow at phone width: it lives inside a table
+     cell, so the toolbar's select sizing above would force horizontal scrolling. */
+  .category-select { min-width: 0; max-width: 128px; min-height: 28px; padding: 0 18px 0 6px; font-size: 12px; background-position: right 5px center; }
+  .classification-error { padding: 10px 16px; font-size: 12.5px; }
+  .search-field { padding-left: 8px; padding-right: 8px; gap: 6px; }
+  .search-field input { font-size: 13px; }
+  .details-row > td { padding: 2px 16px 12px !important; }
+  .details-title, .position-details { max-width: calc(100vw - 66px); }
+  .positions-footer { align-items: flex-start; flex-direction: column; gap: 5px; padding: 12px 16px; }
+  .positions-toolbar { padding: 16px; }
+  .fx-strip { gap: 6px 10px; }
+  .error-banner { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .page-footer { font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
