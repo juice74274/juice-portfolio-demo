@@ -1,4 +1,4 @@
-// Presentation labels only. API values, category keys and CSS hooks stay unchanged.
+// Presentation labels for normalized snapshot values and browser-local group names.
 import type { ClassificationState } from './types';
 
 const categoryLabels: Readonly<Record<string, string>> = {
@@ -34,10 +34,10 @@ const optionRightLabels: Readonly<Record<string, string>> = {
   PUT: '看跌 PUT',
 };
 
-// An unknown or missing category degrades safely to Unclassified instead of leaking a raw value.
+// A nonempty custom group name is shown as supplied; absent values degrade to Unclassified.
 export const normalizeCategory = (value: string | null | undefined) =>
-  value != null && Object.hasOwn(categoryLabels, value) ? value : 'Unclassified';
-export const categoryLabel = (value: string) => categoryLabels[normalizeCategory(value)];
+  value && value.trim() ? value : 'Unclassified';
+export const categoryLabel = (value: string) => categoryLabels[normalizeCategory(value)] ?? normalizeCategory(value);
 // An absent state degrades by category alone and can never infer 'unassigned',
 // matching the source's own inference rule.
 export const normalizeClassificationState = (
@@ -53,22 +53,5 @@ export const positionCategoryLabel = (category: string, state?: string | null) =
   const resolved = normalizeClassificationState(state, category);
   return classificationStateLabels[resolved] ?? categoryLabel(category);
 };
-// The label for one option of a row's classification selector.
-//
-// Built from the two maps above rather than from new strings, so the editing UI cannot
-// drift from the read-only wording and introduces no new category vocabulary:
-// core/mid/high_beta/bonds reuse their category labels, and `unclassified` reuses the
-// existing explicit 不分类 / Unassigned wording — the DECISION, not the action item.
-const configCategoryLabels: Readonly<Record<string, string>> = {
-  core: categoryLabels.Core,
-  mid: categoryLabels.Mid,
-  high_beta: categoryLabels['High Beta'],
-  bonds: categoryLabels.Bonds,
-  unclassified: classificationStateLabels.unassigned,
-};
-export const classificationOptionLabel = (key: string) => configCategoryLabels[key] ?? key;
-// The unselectable placeholder a position with no mapping entry shows. Same wording the
-// read-only tag used, so the state reads identically whether or not it is editable.
-export const needsClassificationLabel = () => classificationStateLabels.needs_classification;
 export const assetTypeLabel = (value: string) => assetTypeLabels[value] ?? value;
 export const optionRightLabel = (value: string) => optionRightLabels[value] ?? value;

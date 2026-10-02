@@ -72,13 +72,13 @@ export function PositionsSection({ portfolio, baseCurrency, search, onSearchChan
         <details className="block-method" data-testid="positions-method">
           <summary><Icon name="info" /><span>数据说明</span></summary>
           <div className="block-method-body">
-            <p className="table-note">金额一律按各持仓原币显示，不折算为 {baseCurrency}；市值 = 数量 × 价格。分类可直接在“类型 / 分类”列修改，不改变数量、市值或盈亏。分类设置仅保存在当前浏览器。</p>
+            <p className="table-note">金额一律按各持仓原币显示，不折算为 {baseCurrency}；市值 = 数量 × 价格。分组可直接在“类型 / 分组”列修改，不改变数量、市值或盈亏。分组设置仅保存在当前浏览器。</p>
           </div>
         </details>
       </div>
       <div className="table-scroll"><table className="positions-table">
         <thead><tr>
-          <th scope="col">资产 / 券商</th><th scope="col">类型 / 分类</th><th scope="col" className="numeric">数量</th>
+          <th scope="col">资产 / 券商</th><th scope="col">类型 / 分组</th><th scope="col" className="numeric">数量</th>
           <th scope="col" className="numeric">当前价格 · 原币</th><th scope="col" className="numeric">市值 · 原币</th>
           <th scope="col" className="numeric">未实现盈亏 · 原币</th><th scope="col" className="numeric">持仓盈亏 · 原币</th>
           <th scope="col" className="numeric">持仓盈亏率</th><th scope="col"><span className="sr-only">明细</span></th>
@@ -86,7 +86,7 @@ export function PositionsSection({ portfolio, baseCurrency, search, onSearchChan
         <tbody>
           {filteredPositions.length === 0 && <tr><td colSpan={9}><div className="empty-state"><Icon name="search" /><strong>{portfolio.positions.length ? '未找到匹配持仓' : '暂无持仓'}</strong><span>{portfolio.positions.length ? '请尝试其他关键词或券商筛选。' : '快照包含持仓后将在此显示。'}</span>{(search || broker !== 'all') && <button className="text-button" onClick={onClearFilters}>清除筛选</button>}</div></td></tr>}
           {filteredPositions.map(position =>
-            <PositionRow key={position.id} position={position} accounts={portfolio.accounts}
+            <PositionRow key={position.id} position={position} accounts={portfolio.accounts} groups={portfolio.organization?.groups ?? []}
               isExpanded={expanded === position.id} onToggle={() => onToggleExpanded(position.id)}
               saving={savingRow(position)}
               onClassify={onClassify} />)}

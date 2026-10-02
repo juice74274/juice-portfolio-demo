@@ -1,183 +1,49 @@
-# Juice Portfolio
+# Juice Portfolio public demo
 
-**Live Demo:** https://juice-portfolio-demo.vercel.app/
+**Live demo:** https://juice-portfolio-demo.vercel.app/
 
-A local-first portfolio dashboard built around a normalized portfolio snapshot, so the UI never needs to know where the portfolio data came from.
+This repository contains a static, read-only demonstration of Juice Portfolio. Every holding, quantity, price, cost, balance, and P&L figure is fabricated. The app has no broker connection, credentials, backend, trading action, or portfolio-data network request.
 
-> **This repository contains the public static demo.** All holdings, quantities, costs, prices and balances are fabricated for demonstration purposes. It does not connect to any broker, contains no real account data, needs no API keys and makes no portfolio-data network requests.
+## What visitors can try
 
-The demo lets visitors try the product's UI and interactions without the private broker integrations it was designed around. The interface is in Simplified Chinese.
+- A dashboard with an overview, wealth goal, allocation table, and searchable holdings ledger.
+- **Allocation Groups:** rename, reorder, create, or delete groups and assign holdings to them. Changes stay in this browser.
+- A collapsible **100% target editor** with one segment per group plus Cash. Drag a boundary or use arrow keys in whole 1 percentage-point steps. Saving updates the allocation table and browser-local preference.
+- Reporting currency switching among USD, SGD, CNH, and HKD using fixed mock FX rates.
+- A separate editable wealth goal and dashboard name, also stored locally.
 
----
+There are no Tags or broker/trading controls in this demo.
 
-## What it demonstrates
+## Fabricated portfolio
 
-The demo starts from a fictional investor with about **USD 300,000** of initial capital and a **USD 1,000,000** wealth goal. Both figures are fabricated demo data.
+The frozen USD valuation is **exactly $500,000**:
 
-- **Portfolio overview and valuation**: total portfolio value and total unrealized P&L, valued in the browser from the static snapshot.
-- **Holdings table**: search, per-holding details, cost, price, market value and P&L.
-- **Editable holding classification**: every holding starts unclassified, and the visitor assigns each one to Core, Mid, High Beta or Bonds.
-- **Allocation visualization**: actual allocation by category, which updates as soon as a classification changes.
-- **Adjustable allocation targets**: a four-layer target (Core / Mid / Growth / Cash), edited on a draggable segmented bar that always sums to 100%.
-- **Independent wealth goal**: a target amount in its own currency, with progress tracked separately from the reporting currency.
-- **Reporting currency switching**: USD, SGD, CNH and HKD.
-- **Fixed mock FX**: one static rate table used for every conversion, so currency switching and goal conversion always agree.
-- **Editable dashboard identity**: the workspace name (for example, "Juice's Dashboard") can be changed. The product name stays fixed.
-- **Browser-local persistence**: classifications, targets, goal, currency and name are kept across reloads.
-- **Refresh without network calls**: Refresh re-reads the same static snapshot, keeps every local preference and sends no request.
+| Allocation Group | Holdings | Value |
+| --- | --- | ---: |
+| 定投层 / Index Investing | VOO, QQQ | $145,000 |
+| 核心层 / Core | MSFT, AAPL, GOOGL, NVDA | $165,000 |
+| 防御层 / Defensive | BRK.B, SCHD, WMT, KO | $95,000 |
+| 高弹性层 / Aggressive Satellite | PLTR, HOOD, RKLB | $50,000 |
+| Cash | USD cash | $45,000 |
 
----
+The target allocation remains 29% Index Investing, 33% Core, 19% Defensive, 10% Aggressive Satellite, and 9% Cash. The synthetic cost basis including cash is $463,000, giving $37,000 of synthetic unrealized P&L. Prices are invented fixture values, frozen at the demo snapshot date. They are not quotes. The default wealth goal is a separate synthetic $1,000,000 USD setting, so initial progress is 50%.
 
-## Architecture
+## Architecture and privacy
 
-The dashboard depends on one boundary, `PortfolioSource`, and on one data shape, `PortfolioSnapshot` (the `Portfolio` type in `src/types.ts`).
+`src/demo/mockPortfolio.ts` contains fabricated native facts. `src/demo/valuePortfolio.ts` values them through fixed mock FX. `DemoPortfolioSource` is the only `PortfolioSource`; it never calls a broker or API. The React dashboard reads the resulting `Portfolio` snapshot. `src/demo/demoOrganization.ts` validates browser-local group, assignment, and target changes. Refresh re-reads the same fixture without network calls.
 
-```
-Dashboard UI
-     ↓
-PortfolioSource            (src/portfolioSource.ts)
-     ↓
-DemoPortfolioSource        (src/demo/demoPortfolioSource.ts)
-     ↓
-Fabricated PortfolioSnapshot + fixed FX   (src/demo/)
-```
+No remote logo service is used; holdings have neutral local initials. Browser-local settings are scoped to this demo. The app loads only its own static assets.
 
-`PortfolioSource` has two jobs: read a snapshot in a requested currency, and save a holding's classification. Accounts, positions, cash, FX rates, allocations and freshness metadata all arrive inside that one normalized snapshot. The UI renders the snapshot. It does not know, or need to know, whether it came from a broker or from a fixture.
+## Run and verify
 
-Snapshot validation and response ordering stay on the UI side of the boundary (`src/App.tsx`), so they work the same way for every source. That includes rejecting malformed snapshots, single-flight Refresh and handling superseded responses.
-
-**This public repository deliberately contains only `DemoPortfolioSource`.** The wider project was designed so that other data sources can sit behind the same `PortfolioSource` boundary and keep the dashboard unchanged:
-
-```
-Private project                         Public demo (this repository)
-
-Read-only broker adapters               Fabricated portfolio
-        ↓                                       ↓
-Portfolio service / normalization       DemoPortfolioSource
-        ↓                                       ↓
-PortfolioSnapshot                       PortfolioSnapshot
-        ↓                                       ↓
-Dashboard UI                            Same dashboard UI
-```
-
-> Broker adapters, backend services and any integration code are **not** included in this repository. The left-hand column is shown only to explain why the boundary exists.
-
-The snapshot type has some fields that the demo never fills, such as broker health status and non-demo portfolio modes. They are there so the UI can handle the full snapshot shape. The demo always reports itself as a mock source with no broker.
-
----
-
-## Demo data & privacy
-
-- All positions, quantities, average costs, prices, balances and P&L are **fabricated**.
-- Prices are a **frozen set of approximate reference values**, rounded for demonstration. They are not live quotes and are never refreshed at runtime.
-- FX rates are **fixed mock values** (per USD: SGD 1.35, CNH 7.2, HKD 7.8), not market rates.
-- No brokerage credentials are needed, and no broker account is contacted.
-- No Logo.dev or other remote logo service is used. Holdings are shown with neutral initials.
-- Classifications and preferences are stored **only in the browser's `localStorage`**.
-- Refreshing the portfolio makes **no external portfolio-data requests**. The page only loads its own static JS/CSS assets.
-
-The end-to-end tests check these rules. For example, one test fails if the page requests anything other than its own static files.
-
----
-
-## Tech stack
-
-- React
-- TypeScript
-- Vite
-- CSS
-- Playwright (end-to-end tests)
-
----
-
-## Run locally
-
-Requires Node.js.
+Requires Node.js and Chromium for Playwright.
 
 ```bash
 npm install
 npx playwright install chromium
-npm run dev
+npm run typecheck
+npm run build
+npm test
 ```
 
-Other scripts:
-
-```bash
-npm run typecheck   # TypeScript checks (app + e2e)
-npm run build       # production build to dist/
-npm run preview     # serve the production build
-npm test            # build, serve on :4174 and run the Playwright suite
-```
-
----
-
-## Testing
-
-The repository has **15 Playwright demo tests** (`e2e/demo/`). `npm test` builds the app and serves the production build, so the tests run against exactly what would be published.
-
-They cover:
-
-- loading the static demo
-- no external portfolio, API or logo requests
-- switching the reporting currency at the fixed mock rates
-- converting the wealth goal through the same FX table
-- every holding starting unclassified
-- classification edits persisting across a reload
-- Refresh keeping local preferences
-- internal consistency of the fabricated portfolio valuation
-
-The suite targets the demo's key behaviour and privacy rules. It is not a full coverage suite.
-
----
-
-## Project structure
-
-```
-src/
-  App.tsx                 app shell: snapshot loading, validation, response ordering
-  portfolioSource.ts      the PortfolioSource boundary
-  types.ts                the normalized snapshot types
-  demo/                   DemoPortfolioSource, fabricated holdings, fixed FX, valuation
-  components/             dashboard sections and cards
-  *.ts                    local preferences: currency, goal, targets, identity, classification
-e2e/demo/                 Playwright tests for the demo source and the running app
-```
-
----
-
-## Project boundaries
-
-Juice Portfolio is strictly a **read-only portfolio visualization** project. It displays holdings and never places orders.
-
-**Included in this repository**
-
-- the static demo UI
-- the fabricated `DemoPortfolioSource`
-- the fixed mock FX table
-- browser-local preferences and classifications
-- the frontend demo tests
-
-**Not included**
-
-- real brokerage credentials
-- real portfolio data
-- broker SDK integrations
-- private backend or runtime configuration
-- trading or order functionality
-
----
-
-## Design principles
-
-- **Local-first**: preferences and classifications stay in the user's own browser.
-- **Read-only by design**: portfolio data is displayed, never acted on.
-- **Normalized snapshot boundary**: every source delivers the same `PortfolioSnapshot` shape.
-- **Source/UI separation**: the UI renders snapshots and has no knowledge of where they come from.
-- **Graceful handling of missing data**: unavailable values are shown as unavailable, never filled with a guess or a zero.
-- **Privacy-conscious public demo**: fabricated data, no credentials and no external portfolio-data requests.
-
----
-
-## Repository status
-
-This repository is the **public demo edition** of Juice Portfolio. It is a static frontend demo running on fabricated data and frozen reference prices. It is not a production deployment and does not use live market data.
+`npm test` builds and serves the production bundle on port 4174, then runs browser and source tests. The tests cover exact synthetic totals and group values, target stepping and persistence, currency conversion, local group edits, and absence of external portfolio requests.

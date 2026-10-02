@@ -7,7 +7,7 @@
 //   unrealized P&L    = quantity × (price − average cost)
 //   daily P&L         = unavailable (null). One frozen price snapshot has no previous close,
 //                       and a day's move is never invented.
-//   holding P&L       = unrealized P&L. The fabricated investor has never sold, so the diluted
+//   holding P&L       = unrealized P&L. The invented fixture assumes no sales, so the diluted
 //                       cost a broker reports equals the average cost, and the P&L column
 //                       reads like a real account.
 //   *_base            = native × demoRate(native currency, reporting currency)
@@ -17,13 +17,13 @@
 // Pure: no clock, no storage, no network. The same inputs always give the same snapshot.
 
 import type {
-  AllocationAssetType, AllocationCategory, CashBalance, CategoryAllocation, Portfolio, Position,
+  AllocationAssetType, CashBalance, CategoryAllocation, Portfolio, Position,
 } from '../types';
 import type { ReportingCurrency } from '../reportingCurrency';
-import type { ClassificationCategoryKey } from '../classification';
+import type { DemoOrganization } from './demoOrganization';
 import { DEMO_ACCOUNT, DEMO_AS_OF, DEMO_CASH_USD, DEMO_HOLDINGS } from './mockPortfolio';
 import { demoFxRates, demoRate } from './mockFx';
-import { classifyDemoSymbol } from './demoClassification';
+
 
 const NATIVE_CURRENCY = 'USD';
 
@@ -38,7 +38,7 @@ export type DemoValuationMeta = { generation: number; instanceId: string };
 
 export function valuePortfolio(
   currency: ReportingCurrency,
-  edits: ReadonlyMap<string, ClassificationCategoryKey>,
+  organization: DemoOrganization,
   { generation, instanceId }: DemoValuationMeta,
 ): Portfolio {
   const rate = demoRate(NATIVE_CURRENCY, currency);
@@ -70,7 +70,9 @@ export function valuePortfolio(
       holding_pnl_native: unrealized,
       holding_pnl_pct: cost === 0 ? null : unrealized / cost * 100,
       holding_pnl_base: unrealized * rate,
-      ...classifyDemoSymbol(holding.symbol, edits),
+      category: organization.groups.find(group => group.id === (organization.assignments[holding.symbol] ?? null))?.name ?? 'Unclassified',
+      classification_state: (organization.assignments[holding.symbol] ?? null) === null ? 'unassigned' : 'assigned',
+      allocation_group_id: organization.assignments[holding.symbol] ?? null,
       broker_key: 'demo',
       option_details: null,
       broker_metrics: null,
@@ -90,21 +92,22 @@ export function valuePortfolio(
   const unrealizedTotal = sum(positions.map(position => position.unrealized_pnl_base ?? 0));
   const holdingTotal = sum(positions.map(position => position.holding_pnl_base ?? 0));
 
-  // Every pre-seeded bucket is reported even when empty; Unclassified only when something is
-  // in it. The demo carries no target config, so target_pct is null —
-  // the four-layer targets the page displays are the visitor's own (allocationTargets.ts).
-  const valueOf = (category: AllocationCategory) => category === 'Cash' ? cashTotal
-    : sum(positions.filter(position => position.category === category)
-      .map(position => position.market_value_base));
-  const bucket = (category: AllocationCategory): CategoryAllocation => ({
-    category, target_pct: null, actual_pct: percentage(valueOf(category), total),
-    value_base: valueOf(category), gap_pct: null,
+  const valueOfGroup = (id: string) => sum(positions.filter(position => position.allocation_group_id === id)
+    .map(position => position.market_value_base));
+  const categoryAllocation: CategoryAllocation[] = organization.groups.map(group => {
+    const value = valueOfGroup(group.id);
+    const actual = percentage(value, total);
+    const target = organization.targets[group.id];
+    return { category: group.name, target_pct: target, actual_pct: actual, value_base: value,
+      gap_pct: actual === null ? null : actual - target };
   });
-  const categoryAllocation = (['Core', 'Mid', 'High Beta', 'Bonds', 'Cash'] as const).map(bucket);
-  if (positions.some(position => position.category === 'Unclassified')) {
-    categoryAllocation.push(bucket('Unclassified'));
-  }
-
+  categoryAllocation.push({ category: 'Cash', target_pct: organization.cashTarget,
+    actual_pct: percentage(cashTotal, total), value_base: cashTotal,
+    gap_pct: percentage(cashTotal, total)! - organization.cashTarget });
+  const ungrouped = sum(positions.filter(position => position.allocation_group_id === null)
+    .map(position => position.market_value_base));
+  if (ungrouped !== 0) categoryAllocation.push({ category: 'Unclassified', target_pct: null,
+    actual_pct: percentage(ungrouped, total), value_base: ungrouped, gap_pct: null });
   const assetValues: [AllocationAssetType, number][] = [
     ...(['Equity', 'ETF', 'Option'] as const).map((type): [AllocationAssetType, number] =>
       [type, sum(positions.filter(position => position.asset_type === type)
@@ -142,6 +145,7 @@ export function valuePortfolio(
     asset_allocation: assetValues.map(([asset_type, value]) =>
       ({ asset_type, value_base: value, weight_pct: percentage(value, total) })),
     category_allocation: categoryAllocation,
+    organization,
     native_totals: [{
       currency: NATIVE_CURRENCY, positions_value_native: nativePositions,
       cash_value_native: nativeCash, total_value_native: nativePositions + nativeCash,

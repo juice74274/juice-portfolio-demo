@@ -984,7 +984,7 @@ export default function App() {
           valueInCurrency={valueInCurrency} />
 
         {portfolio && <>
-          <AllocationSection portfolio={portfolio} baseCurrency={baseCurrency} />
+          <AllocationSection portfolio={portfolio} baseCurrency={baseCurrency} onChanged={reload} />
 
           <PositionsSection portfolio={portfolio} baseCurrency={baseCurrency}
             search={search} onSearchChange={setSearch}

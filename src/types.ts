@@ -9,7 +9,7 @@ export type AccountType = 'mock' | 'real';
 // 'Security' is the neutral type for a broker row whose stock-vs-ETF status is unreported.
 export type AssetType = 'Equity' | 'ETF' | 'Option' | 'Security';
 export type AllocationAssetType = AssetType | 'Cash' | 'Fund Assets';
-export type PositionCategory = 'Core' | 'Mid' | 'High Beta' | 'Bonds' | 'Unclassified';
+export type PositionCategory = string;
 // Why a position carries its category. Additive: `category` is unchanged, so a
 // snapshot that omits this (such as a test fixture) still renders, and the UI infers the
 // safe default. 'unassigned' is never inferred: it needs a real mapping.
@@ -26,7 +26,7 @@ export type BrokerKey = 'moomoo' | 'tiger' | 'webull' | 'usmart';
 // never name it.
 export type ClassificationScope = BrokerKey | 'demo';
 // 'Fund Assets' is a non-target aggregate bucket: neither a position category nor Cash.
-export type AllocationCategory = 'Core' | 'Mid' | 'High Beta' | 'Bonds' | 'Cash' | 'Unclassified' | 'Fund Assets';
+export type AllocationCategory = string;
 export type OptionRight = 'CALL' | 'PUT';
 
 export interface Account {
@@ -97,6 +97,7 @@ export interface Position {
   holding_pnl_pct: number | null;
   holding_pnl_base: number | null;
   category: PositionCategory;
+  allocation_group_id?: string | null;
   // Optional so existing/older snapshots stay valid; absent degrades via category alone.
   classification_state?: ClassificationState;
   // Canonical broker key for a classification write. Optional for the same reason as the
@@ -169,7 +170,7 @@ export interface AssetAllocation {
 
 export interface CategoryAllocation {
   category: AllocationCategory;
-  // Unavailable (not invented) for the Unclassified bucket.
+  // The ungrouped bucket has no target. Demo groups and Cash have whole-number targets.
   target_pct: number | null;
   actual_pct: number | null;
   value_base: number;
@@ -235,6 +236,7 @@ export interface Portfolio {
   broker_allocation: BrokerAllocation[];
   asset_allocation: AssetAllocation[];
   category_allocation: CategoryAllocation[];
+  organization?: import('./demo/demoOrganization').DemoOrganization;
   native_totals: NativeCurrencyTotal[];
   // PER-BROKER HEALTH for this snapshot: one entry per broker the source reads, healthy or not.
   // Every accounting field above describes the `ok` brokers alone.
